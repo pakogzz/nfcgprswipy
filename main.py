@@ -18,39 +18,6 @@ pycom.heartbeat(False)
 pycom.nvs_set('p0', 0)
 pycom.nvs_set('p1', 0)
 
-'''
-
-f = open('data.dat', 'w')
-f.seek(0)
-f.write('hello')
-f.close()
-
-f = open('data.dat', 'r')
-f.seek(0)
-f.readline()
-f.close()
-
-f = open('data.dat', 'w')
-f.seek(5)
-f.write('como')
-f.close()
-
-f = open('data.dat', 'r')
-f.seek(5)
-f.readline()
-f.close()
-
-f = open('data.dat', 'w')
-f.seek(0)
-f.write('estas')
-f.close()
-
-f = open('data.dat', 'r')
-f.seek(0)
-f.readline()
-f.close()
-
-'''
 				
 sim900 = Pin('P22', mode=Pin.OUT)
 #off
