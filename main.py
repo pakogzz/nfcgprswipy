@@ -249,8 +249,8 @@ def nvs_transmit():
 uart = UART(1, baudrate=19200, pins=('P3','P4'))
 rtc = RTC()
 
-while True:
-	modemInitRTC()
+
+modemInitRTC()
 
 
 _thread.start_new_thread(nvs_transmit,())
