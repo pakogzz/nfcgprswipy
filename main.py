@@ -13,21 +13,15 @@ import binascii
 import read
 import os
 import utime
+import gc
 
 pycom.heartbeat(False)
 pycom.nvs_set('p0', 0)
 pycom.nvs_set('p1', 0)
 
-				
-sim900 = Pin('P22', mode=Pin.OUT)
-#off
-sim900.value(1)
-sim900.value(0)
-time.sleep(5)
-sim900.value(1)
 
-
-
+CONFIG_APN = "wireless.twilio.com"
+CONFIG_URL = "5d9b4688.ngrok.io"
 
 
 def nvs_write():
@@ -78,8 +72,8 @@ def checkGPRS():
 			else:
 				return "MODEM_OK"
 				
-def sendData(payload):
-	uart.write('AT+HTTPACTION=0\r')
+def sendData():
+	uart.write('AT+HTTPACTION=1\r')
 	while True:	
 		if uart.any() > 6:
 			s = str(uart.readall(), "utf-8") 
@@ -88,60 +82,82 @@ def sendData(payload):
 				return "MODEM_OK"
 			else:
 				return "MODEM_ERROR"
-		
-def modemInit():
 	
-	sim900.value(0)
-	time.sleep(1)
-	sim900.value(1)
-	time.sleep(10)
+
+
+def modemInitRTC():
 	
 	uart.readall()
 	if (sendATcommandNoEcho('ATE0') != 'MODEM_OK'): error_handler()
 	print("Disabled echo")
 	
+	if (sendATcommandReset('AT+CFUN=1,1') != 'MODEM_OK'): error_handler()
+	time.sleep(15)
+	uart.readall()
+	print("Modem Reset")
+
+	if (sendATcommandNoEcho('ATE0') != 'MODEM_OK'): error_handler()
+	print("Disabled echo")
 	
 	if (sendATcommand('AT+CLTS=1', 'OK') != 'MODEM_OK'): error_handler()
-	print("Enabled network time")
-	if (sendATcommand('AT', 'OK') != 'MODEM_OK'): error_handler()
-	print("AT test ok")
-	if (sendATcommandDate() != 'MODEM_OK'): error_handler()	
-	print("Date set ok")
-	if (sendATcommand('AT+SAPBR=3,1,"Contype","GPRS"', 'OK') != 'MODEM_OK'): error_handler()	
-	print("ok")	
-	if (sendATcommand('AT+SAPBR=3,1,"APN","wireless.twilio.com"', 'OK') != 'MODEM_OK'): error_handler()	
-	print("ok")
-	while True:
-		if(checkGPRS() == 'MODEM_OK'): 
-			return "MODEM_OK"
+	print("Enable network time")
 	
-def modemShutdown():
-	sim900.value(1)
-	sim900.value(0)
-	time.sleep(5)
-	sim900.value(1)
-
+	while True:
+		if(sendATcommandDate() == 'MODEM_OK'): 
+			return "MODEM_OK"
 	
 
 def sendATcommandPOST(payload):
 	
 	
-	#checkGPRS()
+	uart.readall()
+	if (sendATcommandNoEcho('ATE0') != 'MODEM_OK'): error_handler()
+	print("Disabled echo")
+	
+	if (sendATcommandReset('AT+CFUN=1,1') != 'MODEM_OK'): error_handler()
+	time.sleep(15)
+	uart.readall()
+	print("Modem Reset")
+
+	if (sendATcommandNoEcho('ATE0') != 'MODEM_OK'): error_handler()
+	print("Disabled echo")
+	
+	if (sendATcommand('AT+SAPBR=3,1,"Contype","GPRS"', 'OK') != 'MODEM_OK'): error_handler()	
+	print("Set GPRS contex")
+	
+	if (sendATcommand('AT+SAPBR=3,1,"APN","'+CONFIG_APN+'"', 'OK') != 'MODEM_OK'): error_handler()	
+	print("Set APN")
+	while True:
+		if(checkGPRS() == 'MODEM_OK'): 
+			print("Attached to GPRS network")
+			
+	if (sendATcommand('AT+SAPBR=3,1,"Contype","GPRS"', 'OK') != 'MODEM_OK'): error_handler()	
+	print("Set GPRS contex")
+	
+	if (sendATcommand('AT+SAPBR=3,1,"APN","'+CONFIG_APN+'"', 'OK') != 'MODEM_OK'): error_handler()	
+	print("Set APN")
 	
 	if (sendATcommand('AT+HTTPINIT', 'OK') != 'MODEM_OK'): error_handler()
-	print("ok")
+	print("Configured HTTP parameters AT+HTTPINIT")
 	if (sendATcommand('AT+HTTPPARA="CID",1', 'OK') != 'MODEM_OK'): error_handler()
-	print("ok")
-	if (sendATcommand('AT+HTTPPARA="URL","http://4049fd38.ngrok.io"', 'OK') != 'MODEM_OK'): error_handler()	
-	print("ok")	
-	if (sendData(payload) == 'MODEM_OK'): 
+	print("Configured HTTP parameters CID")
+	if (sendATcommand('AT+HTTPPARA="CONTENT","application/json"', 'OK') != 'MODEM_OK'): error_handler()	
+	print("Configured HTTP parameters CONTENT")
+	if (sendATcommand('AT+HTTPPARA="URL","http://'+CONFIG_URL+'"', 'OK') != 'MODEM_OK'): error_handler()	
+	print("Configured HTTP parameters URL")
+	if (sendATcommand('AT+HTTPDATA='+str(len(str(payload,"utf-8"))+18)+',5000', 'DOWNLOAD') != 'MODEM_OK'): error_handler()	
+	print("Configured HTTP parameters AT+HTTPDATA and ready to push payload")
+	if (sendATcommand('d='+str(payload,"utf-8")+'&m=867622011165381', 'OK') != 'MODEM_OK'): error_handler()	
+	print("Payload pushed")	
+	
+	if (sendData() == 'MODEM_OK'): 
 		pycom.nvs_set('p0', int(pycom.nvs_get('t')))
-		print("ok")	
+		print("Data succesfully sent!")	
 	else:
-		print ("server offline need to try again later")
+		print ("ERROR: Server offline need to try again later")
 
 	if (sendATcommand('AT+HTTPTERM', 'OK') != 'MODEM_OK'): error_handler()	
-	print("ok")
+	print("Configured HTTP parameters AT+HTTPTERM")
 	
 def error_handler():
 	print('ERROR_HANDLER')
@@ -158,7 +174,14 @@ def sendATcommand(c, e):
 				return "MODEM_OK"
 			else:
 				return "MODEM_ERROR"
-				
+	
+
+
+def sendATcommandReset(c):
+	print(c)
+	uart.write(c+'\r')
+	return "MODEM_OK"
+	
 def sendATcommandNoEcho(c):
 	print(c)
 	uart.write(c+'\r')
@@ -173,30 +196,31 @@ def sendATcommandNoEcho(c):
 			
 def sendATcommandDate():
 	uart.write('AT+CCLK?'+'\r')
-	time.sleep(.1)
-	print(".")
-	r = uart.readall()
-	print(r)
-	if (str(r, "utf-8") != '\r\nERROR\r\n'):
-		s = str(r, "utf-8") 
-		year = int(s[10:12])+2000
-		month = int(s[13:15])
-		day = int(s[16:18])
-		hour = int(s[19:21])
-		min = int(s[22:24])
-		sec = int(s[25:27])
-		print(year)
-		print(month)
-		print(day)
-		rtc.init((year, month, day, hour, min, sec, 0, 0))
-		return "MODEM_OK"
-	else:
-		return "MODEM_ERROR"	
+	while True:	
+		if uart.any() > 0:
+			r = uart.readall()
+			print(r)
+			if (str(r, "utf-8") != '\r\nERROR\r\n'):
+				s = str(r, "utf-8") 
+				year = int(s[10:12])+2000
+				month = int(s[13:15])
+				day = int(s[16:18])
+				hour = int(s[19:21])
+				min = int(s[22:24])
+				sec = int(s[25:27])
+				print(year)
+				print(month)
+				print(day)
+				rtc.init((year, month, day, hour, min, sec, 0, 0))
+				return "MODEM_OK"
+			else:
+				return "MODEM_ERROR"	
 
 def nvs_transmit():
 	while True:
-		time.sleep(15)
-		
+		time.sleep(1)
+		gc.collect() 
+		gc.mem_free()
 		try:
 			os.stat('data.dat')
 			exists = True
@@ -208,39 +232,27 @@ def nvs_transmit():
 			p0 = int(pycom.nvs_get('p0'))
 			p1 = int(pycom.nvs_get('p1'))
 			pycom.nvs_set('t', p1)
-			
-			print (p0)
-			print (p1)
-			
-			#f1 = open('data.dat', 'rb')
-			#print(binascii.hexlify(f1.readall()))
-			#f1.close()
-			
+
 			if p1 > p0:	
 			
-				
+				print (p0)
+				print (p1)
 				f1 = open('data.dat', 'rb')
 				f1.seek(p0)
 				payload = binascii.hexlify(f1.read(p1-p0))
 				print(payload)
-				f1.close()
-				#pycom.nvs_set('p0', p1)				
-				time.sleep(2)
-				modemInit();
-				payload = binascii.hexlify(bytearray(struct.pack('H', 65535))) + payload
+				f1.close()		
 				sendATcommandPOST(payload)
-				print(payload)
-				modemShutdown();
+				print("Transmission completed")
+				
 
 uart = UART(1, baudrate=19200, pins=('P3','P4'))
 rtc = RTC()
-print(rtc.now())
+
+while True:
+	modemInitRTC()
 
 
-
-
-#_thread.start_new_thread(nvs_write,())
-#_thread.start_new_thread(nvs_read,())
 _thread.start_new_thread(nvs_transmit,())
 _thread.start_new_thread(nfc_read,())
 
