@@ -197,7 +197,7 @@ def sendATcommandNoEcho(c):
 def sendATcommandDate():
 	uart.write('AT+CCLK?'+'\r')
 	while True:	
-		if uart.any() > 0:
+		if uart.any() > 6:
 			r = uart.readall()
 			print(r)
 			if (str(r, "utf-8") != '\r\nERROR\r\n'):
