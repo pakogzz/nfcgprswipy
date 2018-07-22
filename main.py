@@ -218,9 +218,7 @@ def sendATcommandDate():
 
 def nvs_transmit():
 	while True:
-		time.sleep(1)
-		gc.collect() 
-		gc.mem_free()
+		time.sleep(5)
 		try:
 			os.stat('data.dat')
 			exists = True
@@ -229,6 +227,8 @@ def nvs_transmit():
 	
 		if exists:
 		
+			gc.collect() 
+			gc.mem_free()
 			p0 = int(pycom.nvs_get('p0'))
 			p1 = int(pycom.nvs_get('p1'))
 			pycom.nvs_set('t', p1)
@@ -248,11 +248,7 @@ def nvs_transmit():
 
 uart = UART(1, baudrate=19200, pins=('P3','P4'))
 rtc = RTC()
-
-
 modemInitRTC()
-
-
 _thread.start_new_thread(nvs_transmit,())
 _thread.start_new_thread(nfc_read,())
 
