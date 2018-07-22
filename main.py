@@ -131,33 +131,34 @@ def sendATcommandPOST(payload):
 		if(checkGPRS() == 'MODEM_OK'): 
 			print("Attached to GPRS network")
 			
-	if (sendATcommand('AT+SAPBR=3,1,"Contype","GPRS"', 'OK') != 'MODEM_OK'): error_handler()	
-	print("Set GPRS contex")
-	
-	if (sendATcommand('AT+SAPBR=3,1,"APN","'+CONFIG_APN+'"', 'OK') != 'MODEM_OK'): error_handler()	
-	print("Set APN")
-	
-	if (sendATcommand('AT+HTTPINIT', 'OK') != 'MODEM_OK'): error_handler()
-	print("Configured HTTP parameters AT+HTTPINIT")
-	if (sendATcommand('AT+HTTPPARA="CID",1', 'OK') != 'MODEM_OK'): error_handler()
-	print("Configured HTTP parameters CID")
-	if (sendATcommand('AT+HTTPPARA="CONTENT","application/json"', 'OK') != 'MODEM_OK'): error_handler()	
-	print("Configured HTTP parameters CONTENT")
-	if (sendATcommand('AT+HTTPPARA="URL","http://'+CONFIG_URL+'"', 'OK') != 'MODEM_OK'): error_handler()	
-	print("Configured HTTP parameters URL")
-	if (sendATcommand('AT+HTTPDATA='+str(len(str(payload,"utf-8"))+18)+',5000', 'DOWNLOAD') != 'MODEM_OK'): error_handler()	
-	print("Configured HTTP parameters AT+HTTPDATA and ready to push payload")
-	if (sendATcommand('d='+str(payload,"utf-8")+'&m=867622011165381', 'OK') != 'MODEM_OK'): error_handler()	
-	print("Payload pushed")	
-	
-	if (sendData() == 'MODEM_OK'): 
-		pycom.nvs_set('p0', int(pycom.nvs_get('t')))
-		print("Data succesfully sent!")	
-	else:
-		print ("ERROR: Server offline need to try again later")
+			if (sendATcommand('AT+SAPBR=3,1,"Contype","GPRS"', 'OK') != 'MODEM_OK'): error_handler()	
+			print("Set GPRS contex")
+			
+			if (sendATcommand('AT+SAPBR=3,1,"APN","'+CONFIG_APN+'"', 'OK') != 'MODEM_OK'): error_handler()	
+			print("Set APN")
+			
+			if (sendATcommand('AT+HTTPINIT', 'OK') != 'MODEM_OK'): error_handler()
+			print("Configured HTTP parameters AT+HTTPINIT")
+			if (sendATcommand('AT+HTTPPARA="CID",1', 'OK') != 'MODEM_OK'): error_handler()
+			print("Configured HTTP parameters CID")
+			if (sendATcommand('AT+HTTPPARA="CONTENT","application/json"', 'OK') != 'MODEM_OK'): error_handler()	
+			print("Configured HTTP parameters CONTENT")
+			if (sendATcommand('AT+HTTPPARA="URL","http://'+CONFIG_URL+'"', 'OK') != 'MODEM_OK'): error_handler()	
+			print("Configured HTTP parameters URL")
+			if (sendATcommand('AT+HTTPDATA='+str(len(str(payload,"utf-8"))+18)+',5000', 'DOWNLOAD') != 'MODEM_OK'): error_handler()	
+			print("Configured HTTP parameters AT+HTTPDATA and ready to push payload")
+			if (sendATcommand('d='+str(payload,"utf-8")+'&m=867622011165381', 'OK') != 'MODEM_OK'): error_handler()	
+			print("Payload pushed")	
+			
+			if (sendData() == 'MODEM_OK'): 
+				pycom.nvs_set('p0', int(pycom.nvs_get('t')))
+				print("Data succesfully sent!")	
+				return("MODEM_OK")
+			else:
+				print ("ERROR: Server offline need to try again later")
+				return("ERROR")
 
-	if (sendATcommand('AT+HTTPTERM', 'OK') != 'MODEM_OK'): error_handler()	
-	print("Configured HTTP parameters AT+HTTPTERM")
+			
 	
 def error_handler():
 	print('ERROR_HANDLER')
